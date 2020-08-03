@@ -1,0 +1,10 @@
+An example module for event subscription and logging.
+
+Intended order of operations:
+
+./salloc.sh
+./flux.sh
+./load_var.sh
+./unload_var.sh
+
+
