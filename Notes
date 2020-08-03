@@ -1,0 +1,21 @@
+Notes from Patki:
+
+How do we check KVS actively?
+
+How do we end the timer loop? Seems to run indefintely, which seems like 
+expected behavior, but I'm unsure how to capture agggregation with this at 
+the moment. 
+
+Why isn't unload.sh detecting my module? 
+
+Where should we be aggregating? 
+
+Once this works on Quartz, we need to move to Lassen and change the scripts 
+to do lalloc. 
+
+Ask Dong as to how he wants the Flux module to be production ready, and how
+it should be released. We may have to add new scripts and guidelines to release
+the "flux-power" module within the flux-framework....
+
+
+
