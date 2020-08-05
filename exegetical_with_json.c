@@ -14,8 +14,9 @@
 #include <jansson.h>
 #include <flux/core.h>
 #include "variorum.h" 
+#include <unistd.h>
 
-#define MY_MOD_NAME "exegetical"
+#define MY_MOD_NAME "exegetical_with_json"
 static const int NO_FLAGS = 0;
 static const char const * DEFAULT_NAMESPACE = NULL;
 const char default_service_name[] = MY_MOD_NAME;
@@ -27,34 +28,44 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
 	static int initialized = 0, count = 0;
 	int rc;
     int ret;
-    char *s = NULL;
     json_t *power_obj  = json_object(); 
+    //uint64_t ts;
+    //double cpu_sock0, cpu_sock1, mem_sock0, mem_sock1;
+    char hostname[24];
+    char kvs_key[50]; 
 
 	flux_t *h = (flux_t*)arg;
 	flux_get_rank(h, &rank);
 	flux_get_size(h, &size);
 
 	if( !initialized ){
-		flux_log(h, LOG_CRIT, "%s:%d rank %" PRIu32 " size %" PRIu32 ".  Timer!\n", __FILE__, __LINE__, rank, size);
+        gethostname(hostname,23);
+		flux_log(h, LOG_CRIT, "%s:%d rank %" PRIu32 " size %" PRIu32 "hostname %s.  Timer!\n", __FILE__, __LINE__, rank, size, hostname);
 		initialized = 1;
 	}
 	count++;
+
+        //Call the JSON API for Variorum 
+        ret = variorum_json_get_node_power(power_obj);
+        if (ret != 0)                                                                  
+            printf("JSON get node power failed!\n");                       
+  
+        //ts = json_integer_value(json_object_get(power_obj, "timestamp"));
+        //cpu_sock0 = json_real_value(json_object_get(power_obj, "power_cpu_socket_0"));
+        //cpu_sock1 = json_real_value(json_object_get(power_obj, "power_cpu_socket_1"));
+        //mem_sock0 = json_real_value(json_object_get(power_obj, "power_mem_socket_0"));
+        //mem_sock1 = json_real_value(json_object_get(power_obj, "power_mem_socket_1"));
+        
+       // char *s = json_dumps(power_obj, 0);
+       // flux_log(h, LOG_CRIT, "From rank %d, JSON obj %s\n", rank, s); 
 
         // Allocate the kvs transaction
         flux_kvs_txn_t *kvs_txn = flux_kvs_txn_create();
         assert( NULL != kvs_txn );
 
-        //Call the JSON API for Variorum 
-        ret = variorum_json_get_node_power(power_obj);
-
-        if (ret != 0)                                                                  
-            printf("JSON get node power failed!\n");                       
-        
-        s = json_dumps(power_obj, 0);
-        puts(s); 
-
         // Create an entry from the kvs
-        rc = flux_kvs_txn_put( kvs_txn, NO_FLAGS, "mykey", "myvalue" );
+        sprintf(kvs_key, "rank.%d.sample.%d",rank,count);
+        rc = flux_kvs_txn_put( kvs_txn, NO_FLAGS, kvs_key,json_dumps(power_obj,0));
         assert( -1 != rc );
 
         // Commit the key+value.
@@ -66,6 +77,7 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
         assert( rc != -1 );
 
         //Clean up JSON obj
+        //free(vhname);
         json_decref(power_obj); 
 
         // Destroy our future.

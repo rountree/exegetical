@@ -1,21 +1,33 @@
-Notes from Patki:
+Notes from Patki, Aug 3, 2020:
+Latest update: Aug 4, 2020.
 
+--done: 
+Write permissions to the repo.
+
+--done; flux kvs ls, flux kvs get 
 How do we check KVS actively?
+
+--done; use flux_log
+How do I see output from all hosts? Only one hostname is getting reported. Need
+to test this. 
+
+--done; ensure MOD_NAME is correct at EOF.
+Why isn't unload.sh detecting my module? 
+
+
+Where should we be aggregating? 
 
 How do we end the timer loop? Seems to run indefintely, which seems like 
 expected behavior, but I'm unsure how to capture agggregation with this at 
 the moment. 
-
-Why isn't unload.sh detecting my module? 
-
-Where should we be aggregating? 
 
 Once this works on Quartz, we need to move to Lassen and change the scripts 
 to do lalloc. 
 
 Ask Dong as to how he wants the Flux module to be production ready, and how
 it should be released. We may have to add new scripts and guidelines to release
-the "flux-power" module within the flux-framework....
+the "flux-power" module within the flux-framework... (Mark suggested a separate 
+sub-repo with a module).
 
 
 

@@ -4,7 +4,17 @@ Intended order of operations:
 
 ./salloc.sh
 ./flux.sh
-./load_var.sh
-./unload_var.sh
+./load.sh
+./unload.sh
 
+First version that works with variorum JSON API, tested on 2 nodes on quartz.
+Variorum returns multiple samples in the JSON object.
+TODO: Aggregation
 
+Currently dumps every sample to KVS. NOT SCALABLE. 
+
+Can be examined with.
+flux kvs ls
+flux kvs get rank.0.sample.<id>
+
+ 

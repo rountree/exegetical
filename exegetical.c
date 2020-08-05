@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <jansson.h>
 #include <flux/core.h>
+#include <unistd.h> 
 
 #define MY_MOD_NAME "exegetical"
 static const int NO_FLAGS = 0;
@@ -86,11 +87,13 @@ static void foo_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg, vo
 int mod_main (flux_t *h, int argc, char **argv)
 {
 	int rc;
+    char hostname[24];
 
 	// Get rank via flux_get_rank() and print results to stderr.
 	flux_get_rank(h, &rank);
 	flux_get_size(h, &size);
-	flux_log(h, LOG_CRIT, "%s:%d QQQ Hello from rank %" PRIu32 " of %" PRIu32 ".\n", __FILE__, __LINE__, rank, size);
+    gethostname(hostname,23);
+	flux_log(h, LOG_CRIT, "%s:%d QQQ Hello from rank %" PRIu32 " of %" PRIu32 " from host %s .\n", __FILE__, __LINE__, rank, size, hostname);
 
 	// Set up a message handler.
 	struct flux_match match = FLUX_MATCH_REQUEST;
