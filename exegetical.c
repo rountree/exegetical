@@ -16,18 +16,30 @@
 
 #define MY_MOD_NAME "exegetical"
 static const int NO_FLAGS = 0;
-static const char const * DEFAULT_NAMESPACE = NULL;
+//static const char const * DEFAULT_NAMESPACE = NULL;
 const char default_service_name[] = MY_MOD_NAME;
 static uint32_t rank, size;
 #define HELLO flux_log(h, LOG_CRIT, "%s:%d rank %" PRIu32 " size %" PRIu32 ".\n", __FILE__, __LINE__, rank, size)
 
+enum{
+	UPSTREAM	=0,
+	ME,
+	DOWNSTREAM1,
+	DOWNSTREAM2,
+	NUM_MSGS
+};
+char * overlay[NUM_MSGS];
+
+
 void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg ){
 
-	static int initialized = 0, count = 0;
-	int rc;
+	static int initialized = 0; 
 	flux_t *h = (flux_t*)arg;
 	flux_get_rank(h, &rank);
 	flux_get_size(h, &size);
+/*
+	static int count = 0;
+	int rc;
 
 	if( !initialized ){
 		flux_log(h, LOG_CRIT, "%s:%d rank %" PRIu32 " size %" PRIu32 ".  Timer!\n", __FILE__, __LINE__, rank, size);
@@ -53,8 +65,29 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
 
         // Destroy our future.
         flux_future_destroy( kvs_future );
+*/
+
+	// flux_log( (flux_t *)arg, LOG_CRIT, "%s:%d rank %" PRIu32 " size %" PRIu32 ".  Me=%s.  Timer!\n", __FILE__, __LINE__, rank, size, overlay[ME]);
+	if( !initialized ){
+		if(rank == 1){
+			flux_future_t *future_msg_to_upstream = flux_rpc (
+					h, 				// flux_t *h, 
+					(const char*)overlay[UPSTREAM],	// const char *topic,
+					"Well howdy!",			// const cahr *s,
+					FLUX_NODEID_ANY,		// uint32_t nodeid, 
+					FLUX_RPC_NORESPONSE);		// int flags);
+			assert( future_msg_to_upstream );
+			flux_future_destroy( future_msg_to_upstream );	// Not needed due to no response.
+		}
+		initialized = 1;
+	}
 }
 
+static void overlay_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg, void *arg){
+	// Set up to catch messages addressed to overlay[ME].
+	flux_log(h, LOG_CRIT, "%s:%d The message hander overlay_cb received a message addressed to %s\n", __FILE__, __LINE__, overlay[ME]);
+
+}
 
 static void foo_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg, void *arg){
 
@@ -83,6 +116,7 @@ static void foo_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg, vo
 	return;
 }
 
+
 int mod_main (flux_t *h, int argc, char **argv)
 {
 	int rc;
@@ -98,6 +132,44 @@ int mod_main (flux_t *h, int argc, char **argv)
 	flux_msg_handler_t *mh = flux_msg_handler_create (h, match, foo_cb, NULL);
 	assert( mh );
 	flux_msg_handler_start(mh);
+
+	// Set up the overlay network.
+	// Upstream rank:  if( rank ){ upstream = rank/2 }
+	// Downstream rank:  if( (rank*2) < size ){ downstream1 = rank*2 }; if( (rank*2)+1 < size ){ downstream2 = rank*2+1 }
+
+	// UPSTREAM
+	if( rank ){
+		assert( -1 != asprintf( &overlay[UPSTREAM], "exegetical.%" PRIu32 "", rank/2 ));
+	}else{
+		overlay[UPSTREAM] = NULL;	// rank 0 doesn't have an upstream node.
+	}
+
+	// DOWNSTREAM 1 and 2
+	if( rank ){
+		if( rank*2 < size ){
+			assert( -1 != asprintf( &overlay[DOWNSTREAM1], "exegetical.%" PRIu32 "", rank*2 ));
+		}else{
+			overlay[DOWNSTREAM1] = NULL;
+		}
+		if( rank*2+1 < size ){
+			assert( -1 != asprintf( &overlay[DOWNSTREAM2], "exegetical.%" PRIu32 "", rank*2+1 ));
+		}else{
+			overlay[DOWNSTREAM2] = NULL;
+		}
+	}else{
+		assert( -1 != asprintf( &overlay[DOWNSTREAM1], "exegetical.%" PRIu32 "", 1 ));
+		overlay[DOWNSTREAM2] = NULL;
+	}
+
+	// ME
+	assert( -1 != asprintf( &overlay[ME], "exegetical.%" PRIu32 "", rank ));
+
+	// Set up the overlay_cb message handler.	
+	struct flux_match overlay_msg = FLUX_MATCH_REQUEST;
+	match.topic_glob = overlay[ME];
+	flux_msg_handler_t *mh_overlay = flux_msg_handler_create (h, overlay_msg, overlay_cb, (void*)h);
+	assert( mh_overlay );
+	flux_msg_handler_start(mh_overlay);
 
 	// Set up a timer.
 	flux_watcher_t* timer_watch_p = flux_timer_watcher_create( flux_get_reactor(h), 1.0, 1.0, timer_handler, h);
