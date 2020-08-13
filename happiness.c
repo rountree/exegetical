@@ -1,4 +1,4 @@
-/* rpc.c */
+/* happiness.c */
 #include <assert.h>
 #include <flux/core.h>
 #include <jansson.h>
@@ -29,18 +29,22 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
         flux_get_size(h, &size);
 
         if( !initialized ){
+		initialized = 1;
 		// discards the future, probably a leak.
 		flux_log(h, LOG_CRIT, "QQQ %s:%d rank %d preparing to make rpctest.incr query.\n", __FILE__, __LINE__, rank);
-		flux_future_t *f = flux_rpc_pack (h, "rpctest.incr", FLUX_NODEID_ANY, 0, "{s:i}", "n", 107);
+		flux_future_t *f = flux_rpc_pack (h, "happiness.incr", FLUX_NODEID_ANY, 0, "{s:i}", "n", 107);
 		assert(f);
-		assert( flux_rpc_get_unpack (f, "{s:i}", "n", &i) >= 0);
+		int rc = flux_rpc_get_unpack (f, "{s:i}", "n", &i);
+		if( rc == -1 ){
+			flux_log_error( h, "flux_rpc_get_unpack() exploded." );
+		}
 		flux_future_destroy(f);
 		flux_log(h, LOG_CRIT, "QQQ %s:%d rank %d received response n=%d.\n", __FILE__, __LINE__, rank, i);
 	}
 }
 
 static const struct flux_msg_handler_spec htab[] = { 
-    { FLUX_MSGTYPE_REQUEST,   "rpctest.incr",    rpctest_incr_cb, 0 },
+    { FLUX_MSGTYPE_REQUEST,   "happiness.incr",    rpctest_incr_cb, 0 },
     FLUX_MSGHANDLER_TABLE_END,
 };
 
@@ -60,7 +64,7 @@ int mod_main (flux_t *h, int argc, char **argv){
 
 	// Rank 1 gets the timer.
 	if( rank == 1 ){
-		flux_watcher_t* timer_watch_p = flux_timer_watcher_create( flux_get_reactor(h), 1.0, 1.0, timer_handler, h); 
+		flux_watcher_t* timer_watch_p = flux_timer_watcher_create( flux_get_reactor(h), 3.0, 3.0, timer_handler, h); 
 		assert( timer_watch_p );
 		flux_watcher_start( timer_watch_p );	
 	}
