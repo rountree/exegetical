@@ -4,7 +4,6 @@
  */
 #define _GNU_SOURCE 1
 #include <assert.h>
-#include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -40,6 +39,7 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
 		if(rank == 1){
 			flux_log(h, LOG_CRIT, "QQQ %s:%d Rank %d in timer code.\n", __FILE__, __LINE__, rank );
 			flux_log(h, LOG_CRIT, "QQQ %s:%d Rank %d sending message to %s\n", __FILE__, __LINE__, rank, overlay[UPSTREAM] );
+			/*
 			flux_future_t *future_of_msg_to_upstream = 
 				flux_rpc_pack(
 					h,				// flux_t *h, 
@@ -51,6 +51,7 @@ void timer_handler( flux_reactor_t *r, flux_watcher_t *w, int revents, void* arg
 				);
 			assert( future_of_msg_to_upstream );
 			flux_future_destroy( future_of_msg_to_upstream );
+			*/
 		}
 		initialized = 1;
 	}
@@ -61,6 +62,7 @@ static void overlay_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg
 	// Set up to catch messages addressed to overlay[ME].
 	flux_log(h, LOG_CRIT, "QQQ %s:%d The message hander overlay_cb received a message addressed to %s\n", __FILE__, __LINE__, overlay[ME]);
 	
+	/*
 	// Use flux_request_unpack() on the flux_msg_t msg.
 	int msg_int;
 	const char *incoming_topic;
@@ -75,6 +77,7 @@ static void overlay_cb (flux_t *h, flux_msg_handler_t *mh, const flux_msg_t *msg
 	}else{
 		flux_log(h, LOG_CRIT, "QQQ %s:%d overlay_cb topic:%s msg_int:%d\n", __FILE__, __LINE__, incoming_topic, msg_int );
 	}
+	*/
 	
 }
 
